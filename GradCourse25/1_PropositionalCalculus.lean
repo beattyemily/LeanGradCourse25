@@ -350,10 +350,38 @@ example : (P ↔ Q) → (Q ↔ R) → (P ↔ R) := by
     exact hR
 
 -- **Exercise**
-example : ¬(P ↔ ¬P) := by sorry
+example : ¬(P ↔ ¬P) := by
+  rintro ⟨ h1, h2 ⟩
+  by_cases hP : (P → False)
+  · apply hP
+    apply h2
+    exact hP
+  · apply hP
+    intro hP'
+    apply h1
+    · exact hP'
+    · exact hP'
 
 -- **Exercise**
-example : (P ↔ R) → (Q ↔ S) → (P ∨ Q ↔ R ∨ S) := by sorry
+example : (P ↔ R) → (Q ↔ S) → (P ∨ Q ↔ R ∨ S) := by
+  rintro ⟨ PimpR, RimpP ⟩ ⟨ QimpS, SimpQ ⟩
+  constructor
+  · rintro hPoQ
+    rcases hPoQ with hP | hQ
+    · left
+      apply PimpR
+      exact hP
+    · right
+      apply QimpS
+      exact hQ
+  · rintro hRoS
+    rcases hRoS with hR | hS
+    · left
+      apply RimpP
+      exact hR
+    · right
+      apply SimpQ
+      exact hS
 
 
 -- `⌘`
@@ -424,32 +452,98 @@ example (h : ∃ x, p x ∧ q x) : ∃ x, q x ∧ p x := by
 
 
 -- **Exercise**
-example : (∀ x, p x ∧ q x) ↔ (∀ x, p x) ∧ (∀ x, q x) := by sorry
+example : (∀ x, p x ∧ q x) ↔ (∀ x, p x) ∧ (∀ x, q x) := by
+  constructor
+  · intro h
+    constructor
+    · intro x
+      specialize h x
+      exact h.left
+    · intro x
+      specialize h x
+      exact h.right
+  · intro h
+    intro x
+    obtain ⟨ hp, hq ⟩ := h
+    specialize hp x
+    specialize hq x
+    constructor
+    · exact hp
+    · exact hq
 
 -- **Exercise**
-example : (∀ x, p x → q x) → (∀ x, p x) → (∀ x, q x) := by sorry
+example : (∀ x, p x → q x) → (∀ x, p x) → (∀ x, q x) := by
+  intro h1
+  intro h2
+  intro x
+  specialize h1 x
+  specialize h2 x
+  apply h1
+  exact h2
 
 
 -- **Exercise**
-example (h : ¬ ∃ x, ¬ p x) : ∀ x, p x := by sorry
+lemma lemma3 (h : ¬ ∃ x, ¬ p x) : ∀ x, p x := by
+  intro x
+  by_contra h_abs
+  apply h
+  use x
 
 /- **ToDO**
     - Use of the `rintro` tactic -/
-example : (∃ x : α, R) → R := by sorry
-
-
--- **Exercise**
-example (x : α) : R → (∃ x : α, R) := by sorry
+example : (∃ _ : α, R) → R := by
+  rintro ⟨ x, hx ⟩
+  exact hx
 
 -- **Exercise**
-example : (∀ x, p x) ↔ ¬ (∃ x, ¬ p x) := by sorry
+example (a : α) : R → (∃ _ : α, R) := by
+  intro hR
+  use a
+
+-- **Exercise**
+example : (∀ x, p x) ↔ ¬ (∃ x, ¬ p x) := by
+  constructor
+  · intro h
+    by_contra h_abs
+    obtain ⟨ x, hx ⟩ := h_abs
+    apply hx
+    specialize h x
+    exact h
+  · apply lemma3
+
 
 /- **ToDO**
     - Use of the `contrapose` tactic, changing `P → Q` to `¬ Q → ¬ P`.
     Its extension `contrapose!` pushes negations from the head of a quantified expression
     to its leaves. -/
-example (a : α) : (∃ x, p x → R) ↔ ((∀ x, p x) → R) := by sorry
+example (a : α) : (∃ x, p x → R) ↔ ((∀ x, p x) → R) := by
+  constructor
+  · rintro ⟨ x, hx ⟩  h2
+    apply hx
+    specialize h2 x
+    exact h2
+  · contrapose!
+    intro h1
+    constructor
+    · intro x
+      specialize h1 x
+      exact h1.left
+    · specialize h1 a
+      exact h1.right
 
 
 -- **Exercise**
-example (a : α) : (∃ x, R → p x) ↔ (R → ∃ x, p x) := by sorry
+example (a : α) : (∃ x, R → p x) ↔ (R → ∃ x, p x) := by
+  constructor
+  · rintro ⟨ x, hx ⟩ hR
+    use x
+    apply hx
+    exact hR
+  · contrapose!
+    intro h
+    constructor
+    · specialize h a
+      exact h.left
+    · intro x
+      specialize h x
+      exact h.right
