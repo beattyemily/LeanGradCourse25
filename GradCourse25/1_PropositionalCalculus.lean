@@ -211,57 +211,106 @@ example : P ∧ Q → Q := by
 -- **Exercise**
 example : (P → Q → R) → P ∧ Q → R := by
   intro PimpQimpR hPaQ
-  sorry
+  apply PimpQimpR
+  · exact hPaQ.left
+  · exact hPaQ.right
 
 -- `∧` is symmetric
 -- **Exercise**
-example : P ∧ Q → Q ∧ P := by sorry
+lemma lemma2 : P ∧ Q → Q ∧ P := by
+  intro hPaQ
+  constructor
+  · exact hPaQ.right
+  · exact hPaQ.left
 
 
 -- `∧` is transitive
 -- **Exercise**
-example : P ∧ Q → Q ∧ R → P ∧ R := by sorry
+example : P ∧ Q → Q ∧ R → P ∧ R := by
+  intro hPaQ hQaR
+  constructor
+  · exact hPaQ.left
+  · exact hQaR.right
 
 -- **Exercise**
-example : False → P ∧ False := by sorry
+example : False → P ∧ False := by
+  intro hF
+  constructor
+  · exfalso
+    exact hF
+  · exact hF
 
 -- **Exercise**
-example : (P ∧ Q → R) → P → Q → R := by sorry
+example : (P ∧ Q → R) → P → Q → R := by
+  intro PaQimpR hP hQ
+  apply PaQimpR
+  constructor
+  · exact hP
+  · exact hQ
 
 /-  # Disjunction / Or
   Use `\or` to write `∨` -/
 
 -- **ToDo**
-example : P → P ∨ Q := by sorry
+example : P → P ∨ Q := by
+  intro hP
+  · left
+    exact hP
 
 -- **Exercise**
-example : Q → P ∨ Q := by sorry
+example : Q → P ∨ Q := by
+  intro hQ
+  · right
+    exact hQ
 
 /- **ToDo**
   symmetry of `∨`, and use of `assumption`  -/
-example : P ∨ Q → Q ∨ P := by sorry
+example : P ∨ Q → Q ∨ P := by
+  intro hPoQ
+  rcases hPoQ with hP | hQ
+  · right
+    assumption
+  · left
+    assumption
 
 /- **ToDO**
    the result of `cases` can be given explicit names, by using `rcases ? with ?1 | ?h2 `-/
-example : P ∨ Q → (P → R) → (Q → R) → R := by sorry
+example : P ∨ Q → (P → R) → (Q → R) → R := by
+  intro hPoQ PimpR QimpR
+  rcases hPoQ with hP | hQ
+  · apply PimpR
+    assumption
+  · apply QimpR
+    assumption
 
 
 /- **ToDO**
   use of the `by_cases` tactic. -/
-example : R ∨ ¬ R := by sorry
+example : R ∨ ¬ R := by
+  by_cases hR : R
+  · left
+    assumption
+  · right
+    assumption
 
 
 -- associativity of `∨`
 -- **Exercise**
-example : (P ∨ Q) ∨ R ↔ P ∨ Q ∨ R := by sorry
+example : (P ∨ Q) ∨ R ↔ P ∨ Q ∨ R :=
+  ⟨by rintro ((_ | _) | _) <;> simp_all, by rintro (_ | (_ | _)) <;> simp_all⟩
 
 
 -- **Exercise**
-example : (P → R) → (Q → S) → P ∨ Q → R ∨ S := by sorry
-
+example : (P → R) → (Q → S) → P ∨ Q → R ∨ S := by
+  intro
+  intro
+  rintro (_ | _) <;> simp_all
 
 -- **Exercise**
-example : (P → Q) → P ∨ R → Q ∨ R := by sorry
+example : (P → Q) → P ∨ R → Q ∨ R := by
+  intro
+  rintro (_ | _) <;> simp_all
+
 
 
 -- `⌘`
@@ -271,16 +320,34 @@ example : (P → Q) → P ∨ R → Q ∨ R := by sorry
     Use `\iff` to write `↔` -/
 
 -- **ToDO**
-example : P ↔ P := by sorry
+example : P ↔ P := by
+  tauto
 
 -- **ToDO**
-lemma lemma1 : (P ↔ Q) → (Q ↔ P) := by sorry
+lemma lemma1 : (P ↔ Q) → (Q ↔ P) := by
+  intro PiffQ
+  constructor
+  · exact PiffQ.mpr
+  · exact PiffQ.mp
 
 -- **ToDO**
-example : (P ↔ Q) ↔ (Q ↔ P) := by sorry
+example : (P ↔ Q) ↔ (Q ↔ P) := by
+  constructor
+  · apply lemma1
+  · apply lemma1
 
 -- **Exercise**
-example : (P ↔ Q) → (Q ↔ R) → (P ↔ R) := by sorry
+example : (P ↔ Q) → (Q ↔ R) → (P ↔ R) := by
+  intro PiffQ QiffR
+  constructor
+  · intro hP
+    apply QiffR.mp
+    apply PiffQ.mp
+    exact hP
+  · intro hR
+    apply PiffQ.mpr
+    apply QiffR.mpr
+    exact hR
 
 -- **Exercise**
 example : ¬(P ↔ ¬P) := by sorry
@@ -299,25 +366,61 @@ variable (α : Type*) (p q : α → Prop) -- Use `\alpha` to write `α`
   Use `\forall` and `\exists` to write `∀` and `∃`. -/
 
 -- **ToDO**
-example (h : ∀ x : α, p x) (y : α) : p y := by sorry
+example (h : ∀ x : α, p x) (y : α) : p y := by
+  specialize h y
+  exact h
 
 -- **Exercise** (*remember* the `by_cases` tactic!)
-example : (∀ x, p x ∨ R) ↔ (∀ x, p x) ∨ R := by sorry
+example : (∀ x, p x ∨ R) ↔ (∀ x, p x) ∨ R := by
+  constructor
+  · intro h
+    by_cases hR : R
+    · right
+      exact hR
+    · left
+      intro x
+      specialize h x
+      rcases h with hpx | hR'
+      · exact hpx
+      · exfalso
+        apply hR
+        exact hR'
+  · intro h
+    intro x
+    rcases h with hpx | hR
+    · left
+      specialize hpx x
+      exact hpx
+    · right
+      exact hR
+
 
 
 -- **Exercise**
-example : (∀ x : α, p x ∧ q x) → ∀ x : α, p x := by sorry
+example : (∀ x : α, p x ∧ q x) → ∀ x : α, p x := by
+  intro h
+  intro x
+  specialize h x
+  exact h.left
 
 /- **ToDO**
     - Use of the `use` tactic -/
-example (x : α) (h : p x) : ∃ y, p y := by sorry
+example (x : α) (h : p x) : ∃ y, p y := by
+  use x
 
 /- **ToDO**
     - Use of the `obtain` tactic -/
-example (h : ∃ x, p x ∧ q x) : ∃ x, q x := by sorry
+example (h : ∃ x, p x ∧ q x) : ∃ x, q x := by
+  obtain ⟨x, hx⟩ := h
+  use x
+  exact hx.right
 
 -- **Exercise**
-example (h : ∃ x, p x ∧ q x) : ∃ x, q x ∧ p x := by sorry
+example (h : ∃ x, p x ∧ q x) : ∃ x, q x ∧ p x := by
+  obtain ⟨ x, hx ⟩ := h
+  use x
+  apply lemma2
+  exact hx
 
 
 -- **Exercise**
