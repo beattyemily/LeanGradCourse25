@@ -1,19 +1,94 @@
 # Groups (and Monoids)
 
-The prototypical monoid is `ℕ`: it has an operation, a `0`, but no inverse.
+The prototypical monoid is `ℕ`: it has an operation, a neutral element `0`, but no opposite.
 
-In principle, we do not like monoids too much: they are somewhat weak algebraic structures. They are nonetheless crucial for our formalization of algebraic structures for (at least) two reasons
+In mathematics, we do not use monoids too much: they are somewhat *weak* algebraic structures. They are nonetheless crucial for our discussion about formalising algebraic structures for (at least) three reasons:
 
-1. Groups are a generalization of monoids: if we can prove some properties only relying on the theory of monoids, it makes less lines to code.
-1. Rings are endowed with *two* operations but are a group only for one of them; for the other they (typically) are a monoid
+1. Groups are a generalisation of monoids: if we can prove some properties only relying on the theory of monoids, it makes less lines to code.
+1. Rings are endowed with *two* operations but are a group only for one of them; for the other they (typically) are a monoid.
+1. They are the "simplest" non-trivial example of an algebraic structure: so we can use it as a playground to understand how to reason about structures without getting lost in details.
 
 ## Monoids
 
-To say that a monoid...
+* In usual pen-and-paper mathematics, a monoid is a set `M` endowed with an **associative** operation `* : M × M → M` and a unit `1 ∈ M`, satisfying `∀ x, 1 * x = x * 1 = x`.
 
+The way monoids are implemented in Mathlib is hierarchical: one defines sets with an operation, then generalises them to sets with an *associative* operations, then constructs sets with a particular element `1`, then generalises both notions together by requiring a compatibility between `1` and `*`, etc...
 
++++ Coming down to earth
+A monoid comes with five main fields, gathered into a "structure"
+
+    structure (M : Type*) Monoid where
+    | mul : M → M → M                        -- denoted *
+    | one : M                                -- denoted 1
+    | mul_assoc (a b c : M) : a * b * c = a * (b * c)
+    | one_mul (a : M) : 1 * a = a
+    | mul_one (a : M) : 1 * 1 = a
+
+We've already encountered structures: we saw that an equivalence is a pair of implications, and that the type `↑S` associated to a set `S : Set α` is a collection of pairs of the form `⟨x, hx⟩` where `x : α` and `hx : S x` is a proof.
+
+Here, 
+* a *monoid structure* on `M` is a collection `⟨*, 1, mul_assoc, one_mul, mul_one⟩`
+* a term of a monoid is just a term of it! The monoid is a type, so it comes with its terms even if it has more structure.
 `⌘`
 
+In the last example we've seen that we were able to endow `Bool` with a monoid structure. But of course many types already come with a fixed, or canonical, monoid structure. To see whether this is true for a type `α` you can type
+
+    #synth Monoid α
+
+to obtain the name of the declaration, if it exists, and an error otherwise.
+
+`⌘`
++++
+
++++ Additive and commutative monoids
+In principle, the symbol used to denote the operation `M → M → M` should play no role.
+
+But on rings we certainly want to have two operations **with different symbols**.
+
+Also, the names of properties of `* : M → M → M` ought to be `mul`-related, whereas the names of those of `+ : M → M → M` should probably have an `add` floating around. Likewise, the neutral element must be `1` or `0` according at what symbol we're using.
+
+* An `AddMonoid` is like a monoid, but where `*` is written `+` and `1` is written `0`; and the `@toadditive` tag automatically creates the relevant translation.
+
+* A `CommMonoid` is a special case of a monoid, but with an extra-field
+
+        structure (M : Type*) CommMonoid M extends Monoid M where
+        | mul_comm (a b : M) : a * b = b * a
+
+And then one can go on to define `AddCommMonoid M` to be what you expect.
+
+`⌘`
++++
+
+
++++ Monoid homomorphisms
+A monoid homomorphism is a function `f : M → N` that respects the operation. There could be (at least) two ways to define this: 
+1. we could declare the property `MonHom : (M → N) → Prop` as
+
+    def MonHom : (M → N) → Prop := f ↦ ( ∀ a b, f (a * b) = (f a) * (f b) ) ∧ (f 1 = 1)
+    
+and let `MonoidHom` be the subset (or the subtype)
+
+    MonoidHom = {f : M → N | MonHom f} (or {f : M → N | MonHom f})
+
+This would mean that a monoid homomorphism is a pair `⟨f, hf : MonHom f⟩`.
+
+2. we could define a new type `MonoidHom M N`, as a structure
+
+        structure MonoidHom M N where
+        | toFun : M → N
+        | map_mul : ∀ a b, toFun (a * b) = (toFun a) * (toFun b)
+        | map_one : toFun 1 = 1
+
+so that terms of `MonoidHom M N` would be *triples* ⟨f, map_mul f, map_one f⟩`.
+
+These approaches are not *very* different, the problem with the first is that to access the proofs one has to destructure `hf` to `hf.1` and `hf.2`. Imagine if there were 20 properties...
+
+
+* **Take-home message**: homomorphisms between algebraic structures are structures on their own, "bundling" together the underline function and all its properties.
+
+It will be another story for continuous/differentiable/smooth functions...
+
++++
 ## Groups
 
 A group is a monoid `G` with inverses:
