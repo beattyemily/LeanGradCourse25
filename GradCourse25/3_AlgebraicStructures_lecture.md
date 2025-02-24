@@ -49,6 +49,8 @@ Also, the names of properties of `* : M → M → M` ought to be `mul`-related, 
 
 * An `AddMonoid` is like a monoid, but where `*` is written `+` and `1` is written `0`; and the `@toadditive` tag automatically creates the relevant translation.
 
+    It has an extra-field `nsmul` of type `ℕ → M → M` that defines the multiplication by a natural number `n`, by default equal to `n • x = x + x ... + x` (`n` times). Type `•` as `\smul`.
+
 * A `CommMonoid` is a special case of a monoid, but with an extra-field
 
         structure (M : Type*) CommMonoid M extends Monoid M where
@@ -101,7 +103,8 @@ Of course, there are also the notion of `AddGroup` with
     neg : A → A
     neg_add_cancel (a : A) : -a + a = 0
 
-and notions 
+and notions of `CommGroup` and `AddCommGroup`, that add a commutativity constraint on `*` or on `+`, respectively, in order to define
+commutative (or *abelian*) groups.
 
 * There is a `group` tactic that proves identities that holds in any group (equivalently, it proves those identities that hold in free groups). The equivalent version for *commutative* groups is `abel`. 
 
@@ -120,10 +123,10 @@ Of course, there is also the notion a group *isomorphism*: this is a structure w
 +++ How do you *state* that something is a group isomorphism?
 * To *state* something means creating a type in `Prop`
 * To prove a statement means creating an *inhabited* type in `Prop`
-* A `GroupEquiv` is not a type in `Prop`, it can have way too many terms...
+* A `GroupEquiv` is not a type in `Prop`, it has way too many terms...
 
-    def IsoOfBijective (G H : Type*) [Group G] [Group H] (f : G →* H)
-        (h_surj : Surjective f) (h_inj f) : G ≃* H := by
+        def IsoOfBijective (G H : Type*) [Group G] [Group H] (f : G →* H)
+            (h_surj : Surjective f) (h_inj f) : G ≃* H := by
 
 +++
 
@@ -143,9 +146,10 @@ A subgroup is *not defined* as a group that is also a subset. It is a subset clo
 
 to declare that `H` is a subgroup of `G` (technically: a term of the type parametrising such subgroup structures).
 
-* How can we prove that something *is* a subgroup? Again, by *defining* a term!
++++ How can we prove that something *is* a subgroup?
+Again, by *defining* a term!
 
-+++ Trivial ones?
+### Trivial ones
 Among all subgroups of a group `G`, two fundamental examples are the trivial group `{1} ⊆ G` and the whole group `G ⊆ G`. To treat these things, we borrow the language of orders.
 
 Indeed, subgroups are *ordered* (by inclusion of their carrier), so `{1} = ⊥` (the bottom element, typed `\bot` and `G = ⊤`, the top element (typed with `\top`).
@@ -154,3 +158,44 @@ Indeed, subgroups are *ordered* (by inclusion of their carrier), so `{1} = ⊥` 
 +++
 
 # Rings
+
+As for groups, the way to say that `R` is a ring is to type
+
+    (R : Type*) [Ring R]
+
+The library is particularly rich insofar as *commutative* rings are concerned, and we're going to stick to those in our course. The tactic `ring` solves claim about basic relations in commutative rings.
+
+Given what we know about groups and monoids, we can expect a commutative ring to have several "weaker" structures: typically these can be accessed through a `.toWeakStructure` projection.
+
+`⌘`
+
++++ Morphisms and Ideals
+
+* Morphisms work as for groups: they are simply functions respecting both structures on a ring, that of a multiplicative monoid and of an additive group: so, they're simply respecting both monoid structures, hence the notation `R →+* S` for a ring homomorphism. Of course, `≃+*` denotes ring isomorphism, so `R ≃+* S` is the **type** of all ring homomorphisms from `R` to `S`.
+
+* Ideals 
+
+They're defined building upon the overarching structure of `Module`s, but it won't matter for us. Suffices it to say that in the following setting
+
+        example (R : Type*) [CommRing R] (I : Ideal R)
+
+the type `Ideal R` consists of all ideals `I ⊆ R`; hence, a term `I : Ideal R` is such that
+
+        | I.carrier : Set R
+        | I.zero_mem : (0 : R) ∈ I
+        | I.add_mem (x y : R) : x ∈ I → y ∈ I → x + y ∈ I
+        | I.smul_mem (x y : R) : x ∈ I → x • y ∈ I
+
+The `smul_mem` field is part of the definition, but it is sometimes handier to use either of
+
+        I.mul_mem_left (a b : R) : b ∈ I → a * b ∈ I
+
+or
+
+        I.mul_mem_right (a b : R) : a ∈ I → a * b ∈ I
+
+
+As for subgroups, the type `Ideal R` is ordered, and the ideal `{0} : Ideal R` is actually `⊥` whereas
+`R : Ideal R` is `⊤`.
+
+`⌘`
