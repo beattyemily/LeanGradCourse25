@@ -81,6 +81,8 @@ example (a : ℝ) : Filter ℝ where
     rw [max_sub_sub_left a ε ε', min_add_add_left a ε ε']
     exact hz
 
+
+
 -- # § Exercises
 
 
@@ -94,7 +96,9 @@ example (s : Set α) : Filter α where
 
 
 -- Many results about `𝓟` have names containing `principal`.
-#check mem_principal
+
+-- **Exercise**
+example (s t : Set α) : t ∈ 𝓟 s ↔ s ⊆ t := mem_principal
 
 -- **Exercise**
 example (s t X : Set α) (hst : t ⊆ s) : X ∈ 𝓟 s → X ∈ 𝓟 t := by
@@ -147,45 +151,102 @@ def nhds_left (a : ℝ) : Filter ℝ where
 -- `⌘`
 
 
--- ### Convergence: Take 1
-def Tendsto_backwards {X Y : Type*} (f : X → Y) (F : Filter X)
-    (G : Filter Y) := ∀ V ∈ G, f ⁻¹' V ∈ F
+-- ## Convergence: Take 1
+
+
+-- **ToDo**
+def Tendsto_preimage (f : α → β) (F : Filter α) (G : Filter β) : Prop :=
+  ∀ V ∈ G, f ⁻¹' V ∈ F
+
+-- The behaviour of preimages through composition of functions
+#check Set.preimage_comp
 
 -- Compatibility with composition.
-example {X Y Z : Type*} (f : X → Y) (g : Y → Z) (F : Filter X)
-    (G : Filter Y) (H : Filter Z) :
-    Tendsto_backwards f F G → Tendsto_backwards g G H → Tendsto_backwards (g ∘ f) F H := by
+-- **ToDo**
+example {γ : Type*} (f : α → β) (g : β → γ) (F : Filter α) (G : Filter β) (H : Filter γ) :
+    Tendsto_preimage f F G → Tendsto_preimage g G H → Tendsto_preimage (g ∘ f) F H := by
   intro h h' U hU
   rw [preimage_comp]
   apply h
   apply h'
   exact hU
 
-#check Set.preimage_comp
+
+
+-- Link with the "classical" notion
+-- **ToDo**
+example (f : ℝ → ℝ) (a b : ℝ) : Tendsto_preimage f (𝓝 a) (𝓝 b) ↔
+    ∀ ε > 0, ∃ δ > 0, ∀ x, x ∈ Ioo (a - δ) (a + δ) →
+    f x ∈ Ioo (b - ε) (b + ε) := by
+  constructor
+  · intro H ε ε_pos
+    -- rw [Tendsto_preimage] at H
+    have hVb : Ioo (b - ε) (b + ε) ∈ 𝓝 b := by
+      apply Ioo_mem_nhds <;> linarith
+    specialize H _ hVb
+    rw [Metric.mem_nhds_iff] at H
+    obtain ⟨δ, δ_pos, h_incl⟩ := H
+    refine ⟨δ, δ_pos, ?_⟩
+    simp only [Ioo_eq_ball, sub_add_add_cancel, add_self_div_two, add_sub_sub_cancel] at h_incl ⊢
+    apply h_incl
+  · intro H
+    -- rw [Tendsto_preimage]
+    intro V hV
+    rw [Metric.mem_nhds_iff] at hV ⊢
+    obtain ⟨ε, ε_pos, hε⟩ := hV
+    obtain ⟨δ, δ_pos, h_incl⟩ := H ε ε_pos
+    simp only [Ioo_eq_ball, sub_add_add_cancel, add_self_div_two, add_sub_sub_cancel] at h_incl
+    refine ⟨δ, δ_pos, ?_⟩
+    rw [← image_subset_iff]
+    apply subset_trans _ hε
+    rw [image_subset_iff]
+    exact h_incl
+
+-- **Exercise**
+example (u : ℕ → ℝ) (x₀ : ℝ) : Tendsto_preimage u atTop (𝓝 x₀) ↔
+    ∀ ε > 0, ∃ N, ∀ n ≥ N, u n ∈ Ioo (x₀ - ε) (x₀ + ε) := by
+  constructor
+  · intro H ε ε_pos
+    have hVb : Ioo (x₀ - ε) (x₀ + ε) ∈ 𝓝 x₀ := by
+      apply Ioo_mem_nhds <;> linarith
+    specialize H _ hVb
+    rwa [mem_atTop_sets] at H
+  · intro H
+    intro V hV
+    rw [mem_atTop_sets]
+    rw [Metric.mem_nhds_iff] at hV
+    obtain ⟨ε, ε_pos, hε⟩ := hV
+    obtain ⟨N, hN⟩ := H ε ε_pos
+    use N
+    simp only [Ioo_eq_ball, sub_add_add_cancel, add_self_div_two, add_sub_sub_cancel] at hN
+    exact fun n hn ↦ hε <| hN n hn
 
 
 
 -- `⌘`
 
 
--- ### Convergence: Take 2
-example (s t : Set α) : s ⊆ t ↔
-    (Filter.principal t).sets ⊆ (Filter.principal s).sets := by
+
+-- ## Convergence: Take 2
+
+
+-- The order on filters generalises the one on sets
+-- **ToDo**
+example (s t : Set α) : s ⊆ t ↔ (𝓟 t).sets ⊆ (𝓟 s).sets := by
   constructor
   · exact fun h _ hA ↦ le_trans h hA
   · exact fun h ↦ h (mem_principal_self t)
 
--- So this is how we define order on filters:
-#print Filter.le_def  -- F ≤ G ↔ ∀ x ∈ G, x ∈ F
 
-example (F : Filter α) (s : Set α) :
-    𝓟 s ≤ F ↔ ∀ A ∈ F, s ⊆ A := by
+-- **Exercise**
+example (F : Filter α) (s : Set α) : 𝓟 s ≤ F ↔ ∀ A ∈ F, s ⊆ A := by
   constructor
   · exact fun h _ hA ↦ h hA
   · exact fun h A hA ↦ h A hA
 
-example (F : Filter α) (s : Set α) :
-    F ≤ Filter.principal s ↔ s ∈ F := by
+
+-- **Exercise**
+example (F : Filter α) (s : Set α) : F ≤ 𝓟 s ↔ s ∈ F := by
   constructor
   · exact fun h ↦ h (mem_principal_self s)
   · exact fun h _ hA ↦ F.sets_of_superset h hA
@@ -194,36 +255,23 @@ example (F : Filter α) (s : Set α) :
 #print Filter.map
 
 -- This is compatible to the definition for sets.
-example {s : Set α} (f : α → β) :
-    Filter.map f (Filter.principal s) = Filter.principal (f '' s) := by
+-- **ToDo**
+example {s : Set α} (f : α → β) : (𝓟 s).map f = 𝓟 (f '' s) := by
   ext A
-  change f ⁻¹'A ∈ 𝓟 s ↔ A ∈ 𝓟 (f '' s) -- 𝓟 = \ + MCP
+  change f ⁻¹'A ∈ 𝓟 s ↔ A ∈ 𝓟 (f '' s)
   rw [mem_principal, mem_principal]
   exact Set.image_subset_iff.symm
 
--- `⌘`
-
-def Tendsto₂ {X Y : Type*} (f : X → Y) (F : Filter X)
-    (G : Filter Y) := Filter.map f F ≤ G
--- This is the mathlib definition.
--- Tendsto_backwards : ∀ U ∈ G, f ⁻¹' U ∈ F i.e.
-
-example {X Y : Type*} (f : X → Y) (F : Filter X) (G : Filter Y) :
-    Tendsto₂ f F G ↔ Tendsto_backwards f F G :=
-  Iff.rfl
-
--- STOP HERE FOR 1
 
 /- Now to prove the compatibility of limits with compositions,
 we use the properties of `Filter.map`.-/
 #print Filter.map_mono -- `Filter.map f` is monotone.
 -- If F ≤ F', then map f F ≤ map f F'.
 #print Filter.map_map -- `Filter.map (g ∘ f) = Filter.map g ∘ Filter.map f`
-
--- Compatibility with composition.
+-- **???**
 example {X Y Z : Type*} (f : X → Y) (g : Y → Z) (F : Filter X)
     (G : Filter Y) (H : Filter Z) :
-    Tendsto₂ f F G → Tendsto₂ g G H → Tendsto₂ (g ∘ f) F H := by
+    Tendsto f F G → Tendsto g G H → Tendsto (g ∘ f) F H := by
   intro h h'
   change map (g ∘ f) F ≤ H
   rw [← map_map]
@@ -231,57 +279,39 @@ example {X Y Z : Type*} (f : X → Y) (g : Y → Z) (F : Filter X)
   apply map_mono
   exact h
 
-/- Among the other "set" operations, we have preimages, which
-are called `Filter.comap` for filters.-/
-#print Filter.comap --why this definition?
--- f : α → β and G a filter on β
--- s ∈ comap f G ↔ ∃ t ∈ G, f ⁻¹' t ⊆ s
 
-example (s : Set β) (f : α → β) : comap f (𝓟 s) = 𝓟 (f ⁻¹' s) := by
-  simp only [comap_principal]
+#print Tendsto_preimage
+#print Tendsto
 
-/- If `f : α → β` is a function and `s : Set α`, `t : Set β`, then
-we have `f '' s ⊆ t` if and only if `s ⊆ f ⁻¹' t`. We want to
-have the same property for filters, i.e. for `F : Filter α` and
-`G : Filter β`, we want `Filter.map f F ≤ G ↔ F ≤ Filter.comap f G`.
-(In technical terms, this means that `Filter.map f` and `Filter.comap f`
-form a Galois connection, i.e. an adjunction between poset categories.)
--/
-#check Filter.map_le_iff_le_comap
-
-example {f : α → β} {F : Filter α} {G : Filter β} :
-    Filter.map f F ≤ G ↔ F ≤ Filter.comap f G := by
-  constructor
-  · intro h A hA
-    rw [Filter.mem_comap] at hA
-    obtain ⟨B, hb⟩ := hA
-    have := h hb.1
-    rw [Filter.mem_map] at this
-    exact Filter.mem_of_superset this hb.2
-  · intro h B hB
-    rw [Filter.mem_map]
-    apply h
-    rw [Filter.mem_comap]
-    use B
-
-#print Tendsto₂
-
-/- Using `Filter.comap`, we can give an equivalent definition
-of `Tendsto`.-/
-
-def Tendsto₃ {X Y : Type*} (f : X → Y) (F : Filter X)
-    (G : Filter Y) := F ≤ Filter.comap f G
--- But mathlib uses the definition with `Filter.map`.
-
+-- **Exercise**
 example {X Y : Type*} (f : X → Y) (F : Filter X) (G : Filter Y) :
-    Tendsto₂ f F G ↔ Tendsto₃ f F G := by
-  rw [Tendsto₂, Tendsto₃, map_le_iff_le_comap]
+    Tendsto f F G ↔ Tendsto_preimage f F G := Iff.rfl
 
-/- `Filter.comap` is also compatible with composition of
-functions, but just like for preimages, this reverses the
-order:-/
-#print Filter.comap_comap
--- Filter.comap m (Filter.comap n F) = Filter.comap (n ∘ m) F
+
+-- The squeeze theorem
+-- **Exercise**
+example (f g h : ℝ → ℝ) (a x : ℝ) (hf : atTop.map f ≤ 𝓝 a)
+    (hg : atTop.map g ≤ 𝓝 x) (hh : atTop.map h ≤ 𝓝 a) (Hfg : f ≤ g) (Hgh : g ≤ h) : x = a := by
+  have : 𝓝 a = 𝓝 x := by
+    apply eq_of_le_of_le
+    have : (atTop.map h).map f ≤ (𝓝 a).map f := by
+      apply Filter.map_mono hh
+    have : (𝓝 a).map f ≤ (𝓝 a).map g := by
+      have := @Filter.pi_le_pi
+    -- have : Monotone (λ f : ℝ → ℝ ↦ Filter.map f) := by
+      -- have := @Filter.bind_mono (f₁ := 𝓝 a) (f₂ := 𝓝 a) (β := ℝ) (g₁ := fun x ↦ (𝓝 x).map g)
+    -- apply map_mono
+    -- have := @Filter.map_mono (m := f)
+    -- have := Filter.map
+
+
+
+
+-- `⌘`
+
+
+
+-- ## END OF FILTERS FOR LIMITS
 
 
 -- # Second part on filters
